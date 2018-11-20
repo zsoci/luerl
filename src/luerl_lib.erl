@@ -38,7 +38,10 @@
 -spec lua_error(_,_) -> no_return().
 -spec badarg_error(_,_,_) -> no_return().
 
-lua_error(E, St) -> error({lua_error,E,St}).
+lua_error(E, St) -> 
+  ct:pal("(zsoci) ~p:~p(~p): {}:~p",
+        [?MODULE, ?FUNCTION_NAME, ?LINE, {}]),
+  error({lua_error,E,St}).
 
 badarg_error(What, Args, St) -> lua_error({badarg,What,Args}, St). 
 
@@ -157,7 +160,7 @@ tonumber(A, B) ->
 	[N0,Base] ->
 	    case catch begin [N1] = string:tokens(N0, [9,10,11,12,13,32,160]),
 			     {ok,list_to_integer(N1, Base)} end of
-		{ok,I} -> float(I);
+		{ok,I} -> I;
 		_ -> nil
 	    end
     end.
@@ -170,9 +173,11 @@ tonumber(A, B) ->
 %%     end.
 
 tointeger(A) ->
+	ct:pal("(zsoci) ~p:~p(~p): {TOINTEGER}:~p",
+	      [?MODULE, ?FUNCTION_NAME, ?LINE, {}]),
     case tonumber(A) of
 	nil -> nil;
-	N -> float(round(N))
+	N -> (round(N))
     end.
 
 tonumbers(As) -> tonumbers(As, []).

@@ -979,11 +979,11 @@ do_numfor(Is, Lvs, [Step,Limit,Init|Stk], Env, St, _, Fis) ->
 numfor_loop(N, Limit, Step, Fis, Lvs0, Stk0, Env0, St0) ->
     %% Leave the counter at the top of the stack for code to get.
     itrace_print("nl: ~p\n", [{N,Stk0}]),
-    if Step > 0.0, N =< Limit ->		%Keep going
+    if Step > 0, N =< Limit ->		%Keep going
 	    {Lvs1,Stk1,Env1,St1} =
 		emul(Fis, Lvs0, [N|Stk0], Env0, St0),
 	    numfor_loop(N+Step, Limit, Step, Fis, Lvs1, Stk1, Env1, St1);
-       Step < 0.0, N >= Limit ->		%Keep going
+       Step < 0, N >= Limit ->		%Keep going
 	    {Lvs1,Stk1,Env1,St1} =
 		emul(Fis, Lvs0, [N|Stk0], Env0, St0),
 	    numfor_loop(N+Step, Limit, Step, Fis, Lvs1, Stk1, Env1, St1);
@@ -1060,7 +1060,7 @@ build_tab(Fc, I, [Last|Stk0], St0) ->
     {Tref,Stk1,St1}.
 
 build_tab_last(I, [V|Vs]) ->
-    [{I,V}|build_tab_last(I+1.0, Vs)];
+    [{I,V}|build_tab_last(I+1, Vs)];
 build_tab_last(_, []) -> [];
 build_tab_last(_, Last) -> error({boom,build_tab_acc,Last}).
 
@@ -1078,7 +1078,7 @@ op('not', A) -> {ok,not ?IS_TRUE(A)};
 %% op('not', false) -> {[true]};
 %% op('not', nil) -> {[true]};
 %% op('not', _) -> {[false]};			%Everything else is false
-op('#', B) when is_binary(B) -> {ok,float(byte_size(B))};
+op('#', B) when is_binary(B) -> {ok,(byte_size(B))};
 op('#', #tref{}=T) ->
     {meta,fun (_, St) -> luerl_lib_table:length(T, St) end};
 op(Op, A) -> {error,{badarg,Op,[A]}}.
@@ -1089,12 +1089,25 @@ op('+', A1, A2) ->
 op('-', A1, A2) ->
     numeric_op('-', A1, A2, <<"__sub">>, fun (N1,N2) -> N1-N2 end);
 op('*', A1, A2) ->
-    numeric_op('*', A1, A2, <<"__mul">>, fun (N1,N2) -> N1*N2 end);
+    numeric_op('*', A1, A2, <<"__mul">>, fun (N1,N2) ->
+      N1*N2 end);
 op('/', A1, A2) ->
-    numeric_op('/', A1, A2, <<"__div">>, fun (N1,N2) -> N1/N2 end);
+    numeric_op('/', A1, A2, <<"__div">>,
+               fun (N1,N2) when is_integer(N1) andalso
+                                is_integer(N2) ->
+                 case N1 rem N2 of
+                   0 -> N1 div N2;
+                   _ -> N1 / N2
+                 end;
+                   (N1, N2) -> N1/N2
+               end);
 op('%', A1, A2) ->
     numeric_op('%', A1, A2, <<"__mod">>,
-	       fun (N1,N2) -> N1 - floor(N1/N2)*N2 end);
+               fun (N1,N2) when is_integer(N1) andalso
+                                is_integer(N2) ->
+                 N1 rem N2;
+                   (N1,N2) -> N1 - floor(N1/N2)*N2
+               end);
 op('^', A1, A2) ->
     numeric_op('^', A1, A2, <<"__pow">>,
 	       fun (N1,N2) -> math:pow(N1, N2) end);
@@ -1114,10 +1127,10 @@ op(Op, A1, A2) -> {error,{badarg,Op,[A1,A2]}}.
 %% exist before 20 so we have to do it ourselves.
 
 floor(X) ->
-    T = float(trunc(X)),
-    if X >= 0.0 -> T;
+    T = (trunc(X)),
+    if X >= 0 -> T;
        X =:= T -> T;
-       true -> T - 1.0
+       true -> T - 1
     end.
 
 %% numeric_op(Op, Arg, Event, Raw) -> {ok,Res} | {meta,Meta}.
@@ -1163,11 +1176,11 @@ numeric_meta(Op, A1, A2, E, St0) ->
 	    {first_value(Ret),St1}
     end.
 
-eq_op(_Op, A1, A2) when A1 =:= A2 -> {ok,true};
+eq_op(_Op, A1, A2) when A1 == A2 -> {ok,true};
 eq_op(_Op, A1, A2) ->
     {meta,fun (_, St) -> eq_meta(A1, A2, St) end}.
 
-neq_op(_Op, A1, A2) when A1 =:= A2 -> {ok,false};
+neq_op(_Op, A1, A2) when A1 == A2 -> {ok,false};
 neq_op(_Op, A1, A2) ->
     {meta,fun (_, St0) ->
 		  {Ret,St1} = eq_meta(A1, A2, St0),

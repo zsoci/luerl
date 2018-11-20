@@ -112,8 +112,8 @@ atan2(As, St) ->
 
 ceil(As, St) ->
     case luerl_lib:tonumbers(As) of
-	[N|_] when round(N) == N -> {[N],St};
-	[N|_] -> {[float(round(N + 0.5))],St};
+	[N|_] when round(N) == N -> {[round(N)],St};
+	[N|_] -> {[(round(N + 0.5))],St};
 	_ -> badarg_error(ceil, As, St)
     end.
 
@@ -144,14 +144,14 @@ exp(As, St) ->
 floor(As, St) ->
     case luerl_lib:tonumbers(As) of
 	[N|_] when round(N) == N -> {[N],St};
-	[N|_] -> {[float(round(N - 0.5))],St};
+	[N|_] -> {[(round(N - 0.5))],St};
 	_ -> badarg_error(floor, As, St)
     end.
 
 fmod(As, St) ->
     case luerl_lib:tonumbers(As) of
 	[X,Y|_] ->
-	    Div = float(trunc(X/Y)),
+	    Div = (trunc(X/Y)),
 	    Rem = X - Div*Y,
 	    {[Rem],St};
 	_ -> badarg_error(fmod, As, St)
@@ -164,10 +164,10 @@ frexp(As, St) ->				%M,E such that X = M*2^E
 	    Two52 = 1 bsl 52,
 	    M1 = (M0 bor Two52)/Two52,
 	    if M1 >= 1.0 -> M2 = M1/2, E1 = E0 - 1022; %Export M2, E1
-	       M1 < 0.5 -> M2 = M1*2.0, E1 = E0 - 1024;
+	       M1 < 0.5 -> M2 = M1*2, E1 = E0 - 1024;
 	       true -> M2 = M1, E1 = E0 - 1023
 	    end,
-	    {[float(M2),float(E1)],St};
+	    {[(M2),(E1)],St};
 	_ -> badarg_error(frexp, As, St)
     end.
 
@@ -191,7 +191,7 @@ log(As, St) ->
 
 log10(As, St) ->				%For 5.1 backwards compatibility
     case luerl_lib:tonumbers(As) of
-	[0.0|_] -> {[-500.0],St};		%Bit hacky
+	[0|_] -> {[-500],St};		%Bit hacky
 	[N|_] -> {[math:log10(N)],St};
 	_ -> badarg_error(log10, As, St)
     end.
@@ -211,7 +211,7 @@ min(As, St) ->
 modf(As, St) ->
     case luerl_lib:tonumbers(As) of
 	[N|_] ->
-	    I = float(trunc(N)),		%Integral part
+	    I = (trunc(N)),		%Integral part
 	    {[I,N-I],St};
 	_ -> badarg_error(modf, As, St)
     end.
@@ -235,10 +235,10 @@ random(As, #luerl{rand=S0}=St) ->
 	    {[R],St#luerl{rand=S1}};
 	[M] when M >= 1 ->
 	    {R,S1} = ?RAND_UNIFORM(M, S0),
-	    {[float(R)],St#luerl{rand=S1}};
+	    {[(R)],St#luerl{rand=S1}};
 	[M,N] when N >= M ->
 	    {R,S1} = ?RAND_UNIFORM(N - M + 1, S0),
-	    {[float(R + M - 1)],St#luerl{rand=S1}};
+	    {[(R + M - 1)],St#luerl{rand=S1}};
 	_ -> badarg_error(random, As, St)
     end.
 

@@ -107,12 +107,12 @@ error(As, St) -> badarg_error(error, As, St).
 
 ipairs([#tref{}=Tref|_], St) ->
     case luerl_emul:getmetamethod(Tref, <<"__ipairs">>, St) of
-	nil -> {[#erl_func{code=fun ipairs_next/2},Tref,0.0],St};
+	nil -> {[#erl_func{code=fun ipairs_next/2},Tref,0],St};
 	Meta -> luerl_emul:functioncall(Meta, [Tref], St)
     end;
 ipairs(As, St) -> badarg_error(ipairs, As, St).
     
-ipairs_next([A], St) -> ipairs_next([A,0.0], St);
+ipairs_next([A], St) -> ipairs_next([A,0], St);
 ipairs_next([#tref{i=T},K|_], St) ->
     #table{a=Arr} = ?GET_TABLE(T, St#luerl.ttab),	%Get the table
     case ?IS_INTEGER(K, I) of
@@ -120,7 +120,7 @@ ipairs_next([#tref{i=T},K|_], St) ->
 	    Next = I + 1,
 	    case raw_get_index(Arr, Next) of
 		nil -> {[nil],St};
-		V -> {[float(Next),V],St}
+		V -> {[(Next),V],St}
 	    end;
 	_NegFalse -> lua_error({invalid_key,ipairs,K}, St)
     end;
@@ -160,7 +160,7 @@ next(As, St) -> badarg_error(next, As, St).
 
 next_index(I0, Arr, Dict, St) ->
     case next_index_loop(I0+1, Arr, array:size(Arr)) of
-	{I1,V} -> {[float(I1),V],St};
+	{I1,V} -> {[(I1),V],St};
 	none ->
 	    %% Nothing in the array, take table instead.
 	    first_key(Dict, St)
@@ -202,12 +202,14 @@ print(Args, St0) ->
 rawequal([A1,A2|_], St) -> {[A1 =:= A2],St};
 rawequal(As, St) -> badarg_error(rawequal, As, St).
 
-rawlen([A|_], St) when is_binary(A) -> {[float(byte_size(A))],St};
+rawlen([A|_], St) when is_binary(A) -> {[(byte_size(A))],St};
 rawlen([#tref{}=T|_], St) ->
     {[luerl_lib_table:raw_length(T, St)],St};
 rawlen(As, St) -> badarg_error(rawlen, As, St).
 
 rawget([#tref{i=N},K|_], St) when is_number(K) ->
+	ct:pal("(zsoci) ~p:~p(~p): {}:~p",
+	      [?MODULE, ?FUNCTION_NAME, ?LINE, {}]),
     #table{a=Arr,d=Dict} = ?GET_TABLE(N, St#luerl.ttab),	%Get the table.
     V = case ?IS_INTEGER(K, I) of
 	    true when I >= 1 ->			%Array index
@@ -217,12 +219,17 @@ rawget([#tref{i=N},K|_], St) when is_number(K) ->
 	end,
     {[V],St};
 rawget([#tref{i=N},K|_], St) ->
+	ct:pal("(zsoci) ~p:~p(~p): {}:~p",
+	      [?MODULE, ?FUNCTION_NAME, ?LINE, {}]),
     #table{d=Dict} = ?GET_TABLE(N, St#luerl.ttab),	%Get the table.
     V = raw_get_key(Dict, K),
     {[V],St};
-rawget(As, St) -> badarg_error(rawget, As, St).
+rawget(As, St) ->
+	badarg_error(rawget, As, St).
 
 rawset([#tref{i=N}=Tref,K,V|_], #luerl{ttab=Ts0}=St) when is_number(K) ->
+	ct:pal("(zsoci) ~p:~p(~p): {}:~p",
+	      [?MODULE, ?FUNCTION_NAME, ?LINE, {}]),
     #table{a=Arr0,d=Dict0}=T = ?GET_TABLE(N, Ts0),
     Ts1 = case ?IS_INTEGER(K, I) of
 	      true when I >= 1 ->
@@ -260,7 +267,7 @@ raw_set_key(Dict, K, V) -> ttdict:store(K, V, Dict).
 
 %% select(Args, State) -> {[Element],State}.
 
-select([<<$#>>|As], St) -> {[float(length(As))],St};
+select([<<$#>>|As], St) -> {[(length(As))],St};
 select([A|As], St) ->
     %%io:fwrite("sel:~p\n", [[A|As]]),
     Len = length(As),

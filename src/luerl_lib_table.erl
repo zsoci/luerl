@@ -91,8 +91,8 @@ test_concat(As) -> concat_args(As).
 
 concat_args([]) -> concat_args([<<>>]);
 concat_args([nil|As]) -> concat_args([<<>>|As]);
-concat_args([Sep]) -> [Sep,1.0];
-concat_args([Sep,nil|As]) -> concat_args([Sep,1.0|As]);
+concat_args([Sep]) -> [Sep,1];
+concat_args([Sep,nil|As]) -> concat_args([Sep,1|As]);
 concat_args([Sep,I]) -> [Sep,I];
 concat_args([Sep,I,nil|_]) -> [Sep,I];
 concat_args([Sep,I,J|_]) -> [Sep,I,J].
@@ -224,9 +224,9 @@ do_remove_last(Arr0, Dict0) ->
     end.
 
 do_remove_0(Arr, Dict0) ->
-    case ttdict:find(0.0, Dict0) of
+    case ttdict:find(0, Dict0) of
 	{ok,Val} ->
-	    Dict1 = ttdict:erase(0.0, Dict0),
+	    Dict1 = ttdict:erase(0, Dict0),
 	    {[Val],Arr,Dict1};
 	error ->
 	    {[nil],Arr,Dict0}
@@ -259,7 +259,7 @@ remove_array_1(Arr0, N) ->
 %% pack - pack arguments in to a table.
 
 pack(As, St0) ->
-    T = pack_loop(As, 0.0),			%Indexes are floats!
+    T = pack_loop(As, 0),			%Indexes are floats!
     {Tab,St1} = luerl_emul:alloc_table(T, St0),
     {[Tab],St1}.
 
@@ -287,8 +287,8 @@ unpack([], St) -> badarg_error(unpack, [], St).
 %% unpack_args(Args) -> Args.
 %% Fix args for unpack getting defaults right and handling 'nil'.
 
-unpack_args([]) -> unpack_args([1.0]);		%Just start from the beginning
-unpack_args([nil|As]) -> unpack_args([1.0|As]);
+unpack_args([]) -> unpack_args([1]);		%Just start from the beginning
+unpack_args([nil|As]) -> unpack_args([1|As]);
 unpack_args([I]) -> [I];			%Only one argument
 unpack_args([I,nil|_]) -> [I];			%Goto the default end
 unpack_args([I,J|_]) -> [I,J].			%Only use two arguments
@@ -330,7 +330,7 @@ length(#tref{}=T, St0) ->
 
 raw_length(#tref{i=N}, St) ->
     #table{a=Arr} = ?GET_TABLE(N, St#luerl.ttab),
-    float(length_loop(Arr)).
+    (length_loop(Arr)).
 
 length_loop(Arr) ->
     case {array:get(1, Arr),array:get(2, Arr)} of
